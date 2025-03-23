@@ -49,7 +49,7 @@ def run_scraper():
 
     try:
         # Run your scraper controller script
-        controller_path = "project/app_controller.py"
+        controller_path = os.path.join(os.getcwd(), "app_controller.py")
         process = subprocess.Popen(
             ["python3", controller_path, "--all"], 
             stdout=subprocess.PIPE, 
