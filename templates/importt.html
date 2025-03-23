@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Import to Prisync</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #222; color: #eee; margin: 20px; }
+    h1, h2, h3, h4, p, li { margin: 5px 0; }
+    button { padding: 10px 15px; margin: 5px; border: none; cursor: pointer; font-size: 14px; }
+    #step-indicators h2 { display: inline-block; margin-right: 20px; }
+    .hidden { display: none; }
+    .mapping-row { padding: 5px 8px; border-bottom: 1px solid #444; background-color: #333; color: #eee; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .mapping-row:nth-child(even) { background-color: #3a3a3a; }
+    .mapping-column { width: 25%; font-weight: 500; }
+    .mapping-preview { width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #aaa; font-family: monospace; background-color: #2a2a2a; padding: 4px 8px; border-radius: 4px; border: 1px solid #444; }
+    .mapping-dropdown { width: 20%; }
+    .mapping-dropdown select { width: 100%; padding: 8px 12px; border: 1px solid #555; border-radius: 4px; background-color: #444; color: #fff; }
+    .step-container { margin-top: 20px; }
+    .upload-box { border: 2px dashed #555; padding: 20px; text-align: center; margin-bottom: 15px; }
+    a.download-link { color: #0bf; text-decoration: underline; }
+    #progress-bar-container { width: 100%; background-color: #ddd; border-radius: 4px; margin: 10px 0; overflow: hidden; }
+    #progress-bar { height: 20px; background-color: #4CAF50; width: 0%; transition: width 0.5s ease-in-out; }
+    .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; margin: 10px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <h1>Import to Prisync</h1>
+  <div id="step-indicators">
+    <h2 id="step1_indicator" style="font-weight: bold;">1. Upload import file</h2>
+    <h2 id="step2_indicator">2. Map properties</h2>
+  </div>
+
+  <!-- Step 1 (formerly Step 2) -->
+  <div id="step1_container" class="step-container">
+    <h3>Choose a file to upload</h3>
+    <div class="upload-box">
+      <input type="file" id="file_upload" accept=".xlsx, .xls">
+      <p>Drop File Here<br>- or -<br>Click to Upload</p>
+    </div>
+    <div>
+      <button onclick="processFile()">Next Step</button>
+    </div>
+  </div>
+
+  <!-- Step 2 (formerly Step 3) -->
+  <div id="step2_container" class="step-container hidden">
+    <h3>Map Your Excel Columns to Prisync Properties</h3>
+    <p>Adjust the mapping below. Use the Next/Previous buttons to switch between pages.</p>
+    <div id="file_preview">File preview will be shown here.</div>
+    <div id="matched_container">
+      <h4>Columns with Matching Properties</h4>
+      <div id="matched_rows"></div>
+    </div>
+    <div id="unmatched_container" class="hidden">
+      <h4>Columns with Unmatched Properties</h4>
+      <div id="unmatched_rows"></div>
+      <button onclick="showMatched()">Previous</button>
+      <button onclick="completeImport()">Complete Import</button>
+      <div id="import_results"></div>
+    </div>
+  </div>
+
+  <!-- SheetJS library -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    const standardProperties = [
+      "Name", "Product Code", "Barcode", "Product Cost", 
+      "Additional Cost", "Brand", "Category", "Tags", "Your Own URL", 
+      "Competitor URL: rimmersmusic.co.uk",
+      "Competitor URL: guitarguitar.co.uk",
+      "Competitor URL: musicmatters.co.uk",
+      "Competitor URL: pmtonline.co.uk",
+      "Competitor URL: gak.co.uk",
+      "Competitor URL: bonnersmusic.co.uk",
+      "Competitor URL: gear4music.com",
+      "Competitor URL: andertons.co.uk"
+    ];
+    let importType = "Import Products & Competitor URLs"; // Set default import type
+
+    // When page loads, automatically show step 1 (file upload)
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById("step1_container").classList.remove("hidden");
+      document.getElementById("step2_container").classList.add("hidden");
+      document.getElementById("step1_indicator").style.fontWeight = "bold";
+      document.getElementById("step2_indicator").style.fontWeight = "normal";
+    });
+
+    function processFile() {
+      const file = document.getElementById("file_upload").files[0];
+      if (!file) {
+        alert("Please select a file");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const headers = json[0] || [];
+        const firstRow = json[1] || [];
+        showMappingStep(headers, firstRow);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function showMappingStep(headers, previewRow) {
+      document.getElementById("step1_container").classList.add("hidden");
+      document.getElementById("step2_container").classList.remove("hidden");
+      document.getElementById("step1_indicator").style.fontWeight = "normal";
+      document.getElementById("step2_indicator").style.fontWeight = "bold";
+      document.getElementById("file_preview").innerText = "Columns detected: " + headers.join(", ");
+      const matchedContainer = document.getElementById("matched_rows");
+      const unmatchedContainer = document.getElementById("unmatched_rows");
+      matchedContainer.innerHTML = "";
+      unmatchedContainer.innerHTML = "";
+      headers.forEach((header, index) => {
+        const preview = previewRow[index] || "";
+        const row = document.createElement("div");
+        row.className = "mapping-row";
+        row.innerHTML = `
+          <input type="checkbox" checked>
+          <input type="text" class="mapping-column" value="${header}" readonly>
+          <input type="text" class="mapping-preview" value="${preview}" readonly>
+          <div class="mapping-dropdown">
+            <select>
+              ${standardProperties.map(prop =>
+                `<option value="${prop}" ${prop === header ? "selected" : ""}>${prop}</option>`
+              ).join("")}
+            </select>
+          </div>
+        `;
+        if (standardProperties.includes(header)) {
+          matchedContainer.appendChild(row);
+        } else {
+          unmatchedContainer.appendChild(row);
+        }
+      });
+      const matchedNavButtons = document.createElement("div");
+      matchedNavButtons.innerHTML = `<button onclick="showUnmatched()">Next</button>`;
+      matchedContainer.appendChild(matchedNavButtons);
+      showMatched();
+    }
+
+    function showUnmatched() {
+      document.getElementById("matched_container").classList.add("hidden");
+      document.getElementById("unmatched_container").classList.remove("hidden");
+    }
+
+    function showMatched() {
+      document.getElementById("matched_container").classList.remove("hidden");
+      document.getElementById("unmatched_container").classList.add("hidden");
+    }
+
+    function completeImport() {
+      const mappings = [];
+      const matchedRows = document.querySelectorAll("#matched_rows .mapping-row");
+      const unmatchedRows = document.querySelectorAll("#unmatched_rows .mapping-row");
+      [matchedRows, unmatchedRows].forEach(rows => {
+        rows.forEach(row => {
+          if (row.querySelector("input[type='checkbox']").checked) {
+            mappings.push({
+              originalColumn: row.querySelector(".mapping-column").value,
+              mappedTo: row.querySelector("select").value,
+              included: true
+            });
+          }
+        });
+      });
+      const fileData = document.getElementById("file_upload").files[0];
+      const formData = new FormData();
+      formData.append("file", fileData);
+      formData.append("importType", importType);
+      formData.append("mappings", JSON.stringify(mappings));
+      document.getElementById("import_results").innerHTML = `
+        <p>Uploading and processing your file...</p>
+        <div class="loading-spinner"></div>
+      `;
+      fetch('/api/import', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.redirect) {
+          window.location.href = data.redirectUrl;
+        } else {
+          document.getElementById("import_results").innerHTML = `
+            ✅ Import completed!<br>
+            🧾 Import type: <b>${importType}</b><br>
+            📊 Records processed: <b>${data.recordsProcessed}</b><br>
+            📁 File stored as: <b>${data.fileName}</b><br>
+          `;
+        }
+      })
+      .catch(error => {
+        document.getElementById("import_results").innerHTML = `
+          ❌ Import failed: ${error.message}<br>
+          <button onclick="completeImport()">Try Again</button>
+        `;
+      });
+      document.getElementById("matched_container").classList.add("hidden");
+      document.getElementById("unmatched_container").classList.add("hidden");
+    }
+  </script>
+</body>
+</html>
