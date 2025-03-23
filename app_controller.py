@@ -9,7 +9,7 @@ from tqdm import tqdm
 import re
 
 # Define the file path for the Excel file
-EXCEL_FILE_PATH = "processed_Price_Matching.xlsx"
+EXCEL_FILE_PATH = os.path.join(os.getcwd(), "processed", "processed_Price_Matching.xlsx")
 
 # Define a list of rotating user agents (desktop only)
 USER_AGENTS = [
