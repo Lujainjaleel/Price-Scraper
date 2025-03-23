@@ -12,8 +12,8 @@ import time
 app = Flask(__name__)
 
 # Configuration
-UPLOAD_FOLDER = '/Users/lujainjaleel/PriceAnalysisTool/project/uploads'
-PROCESSED_FOLDER = '/Users/lujainjaleel/PriceAnalysisTool/project/processed'
+UPLOAD_FOLDER = 'uploads'
+PROCESSED_FOLDER = 'processed'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
@@ -49,7 +49,7 @@ def run_scraper():
 
     try:
         # Run your scraper controller script
-        controller_path = "/Users/lujainjaleel/PriceAnalysisTool/project/app_controller.py"
+        controller_path = "project/app_controller.py"
         process = subprocess.Popen(
             ["python3", controller_path, "--all"], 
             stdout=subprocess.PIPE, 

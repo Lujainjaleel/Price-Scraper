@@ -51,49 +51,49 @@ ACCEPT_LANGUAGE_HEADERS = [
 # Define the domain to scraper mapping
 DOMAIN_SCRAPERS = {
     "andertons.co.uk": {
-        "file": "/Users/lujainjaleel/PriceAnalysisTool/project/app_Andertons.py",
+        "file": "app_Andertons.py",
         "function": "scrape_andertons_price",
         "price_column": "Andertons_Price",
         "url_column": "Competitor URL: andertons.co.uk"
     },
     "bonnersmusic.co.uk": {
-        "file": "/Users/lujainjaleel/PriceAnalysisTool/project/app_Bonners.py",
+        "file": "app_Bonners.py",
         "function": "scrape_bonners_price",
         "price_column": "Bonners_Price",
         "url_column": "Competitor URL: bonnersmusic.co.uk"
     },
     "musicmatter.co.uk": {
-        "file": "/Users/lujainjaleel/PriceAnalysisTool/project/app_MusicMatters.py",
+        "file": "app_MusicMatters.py",
         "function": "scrape_musicmatter_price",
         "price_column": "MusicMatter_Price",
         "url_column": "Competitor URL: musicmatters.co.uk"
     },
     "guitarguitar.co.uk": {
-        "file": "/Users/lujainjaleel/PriceAnalysisTool/project/app_GG.py",
+        "file": "app_GG.py",
         "function": "scrape_guitarguitar_price",
         "price_column": "GuitarGuitar_Price",
         "url_column": "Competitor URL: guitarguitar.co.uk"
     },
     "gak.co.uk": {
-        "file": "/Users/lujainjaleel/PriceAnalysisTool/project/app_GAK.py",
+        "file": "app_GAK.py",
         "function": "scrape_gak_price",
         "price_column": "GAK_Price",
         "url_column": "Competitor URL: gak.co.uk"
     },
     "pmtonline.co.uk": {
-        "file": "/Users/lujainjaleel/PriceAnalysisTool/project/app_PMT.py",
+        "file": "app_PMT.py",
         "function": "scrape_pmt_price",
         "price_column": "PMT_Price",
         "url_column": "Competitor URL: pmtonline.co.uk"
     },
     "rimmersmusic.co.uk": {
-        "file": "/Users/lujainjaleel/PriceAnalysisTool/project/app_Rimmers.py",
+        "file": "app_Rimmers.py",
         "function": "scrape_rimmers_price",
         "price_column": "Rimmers_Price",
         "url_column": "Competitor URL: rimmersmusic.co.uk"
     },
     "gear4music.com": {
-        "file": "/Users/lujainjaleel/PriceAnalysisTool/project/app_Gear4Music.py",
+        "file": "app_Gear4Music.py",
         "function": "scrape_gear4music_price",
         "price_column": "Gear4Music_Price",
         "url_column": "Competitor URL: gear4music.com"
