@@ -48,7 +48,7 @@ def run_scraper():
     scraping_message = "Starting price scraping..."
 
     try:
-        # Use an absolute, relative-to-CWD path for the controller file
+        # Use a relative path for the controller file
         controller_path = os.path.join(os.getcwd(), "app_controller.py")
         process = subprocess.Popen(
             ["python3", controller_path, "--all"],
@@ -139,6 +139,15 @@ def import_file():
                     new_df[mapped_to] = df[original_col]
         # Debug: log the mapped columns
         print("Mapped columns in processed file:", list(new_df.columns))
+
+        # Ensure that all expected competitor URL columns exist—even if empty
+        from app_controller import DOMAIN_SCRAPERS  # Import the mapping dict from your controller
+        for spec in DOMAIN_SCRAPERS.values():
+            comp_col = spec["url_column"]
+            if comp_col not in new_df.columns:
+                print(f"Creating missing competitor column: {comp_col}")
+                new_df[comp_col] = None
+
         processed_file_path = os.path.join(app.config['PROCESSED_FOLDER'], PROCESSED_FILENAME)
         new_df.to_excel(processed_file_path, index=False)
         records_processed = len(new_df)

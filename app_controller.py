@@ -8,7 +8,7 @@ import time
 from tqdm import tqdm
 import re
 
-# Use relative path for the processed Excel file
+# Use a relative path for the processed Excel file
 EXCEL_FILE_PATH = os.path.join(os.getcwd(), "processed", "processed_Price_Matching.xlsx")
 
 # Define a list of rotating user agents
@@ -19,7 +19,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0"
-    # ... add other user agents as needed
+    # ... add more if needed
 ]
 
 ACCEPT_HEADERS = [
