@@ -15,3 +15,5 @@ numpy
 openpyxl
 xlrd
 gunicorn
+beautifulsoup4
+lxml
