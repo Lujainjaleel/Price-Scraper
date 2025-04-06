@@ -413,17 +413,17 @@ def export_products():
         
         # Create a memory file for the CSV
         csv_data = StringIO()
-        writer = csv.writer(csv_data, dialect='excel', quoting=csv.QUOTE_MINIMAL, lineterminator='\r\n')
+        writer = csv.writer(csv_data, dialect='excel', quoting=csv.QUOTE_MINIMAL)
         
         # Write header row
         writer.writerow(["Product Name", "Product Code", "Competitor URL", "Competitor Price", "Date Scraped"])
         
         # Write each product-competitor pair as a separate row (in alphabetical order)
         for product in sorted_products:
-            product_name = product.get("productName", "N/A").replace('\n', '').replace('\r', '')
+            product_name = product.get("productName", "N/A")
             
             # Format product code with Excel's text formula to preserve leading zeros
-            raw_product_code = str(product.get("productCode", "N/A")).replace('\n', '').replace('\r', '')
+            raw_product_code = str(product.get("productCode", "N/A"))
             # Use Excel's text formula format: ="001234"
             product_code = f'="{raw_product_code}"'
             
@@ -434,11 +434,11 @@ def export_products():
             
             # Add a separate row for each competitor URL
             for url_obj in product.get("urls", []):
-                url = url_obj.get("url", "").replace('\n', '').replace('\r', '')
-                price = url_obj.get("price", "").replace('\n', '').replace('\r', '')
+                url = url_obj.get("url", "")
+                price = url_obj.get("price", "")
                 
                 # Format the date (if available)
-                last_update = url_obj.get("lastUpdate", "").replace('\n', '').replace('\r', '')
+                last_update = url_obj.get("lastUpdate", "")
                 formatted_date = ""
                 if last_update:
                     try:
@@ -450,10 +450,8 @@ def export_products():
                 # Write this product-competitor pair as a row
                 writer.writerow([product_name, product_code, url, price, formatted_date])
         
-        # Add UTF-8 BOM and encode
-        csv_string = csv_data.getvalue()
-        csv_bytes = '\ufeff' + csv_string  # BOM for Excel
-        csv_bytes = csv_bytes.encode('utf-8')
+        # Get the CSV data as a string and encode to bytes
+        csv_bytes = csv_data.getvalue().encode('utf-8')
         
         # Create a BytesIO object for download
         download_file = BytesIO(csv_bytes)
