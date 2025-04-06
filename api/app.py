@@ -679,6 +679,33 @@ def update_price_for_url(product_index, url_index):
         print(f"Error updating price: {str(e)}")
         return False
 
+@app.route('/api/migrate-data', methods=['GET'])
+def migrate_data():
+    try:
+        # Path to the old data file
+        old_path = os.path.join(PROJECT_DIR, 'api', 'product_data.json')
+        
+        # New storage path
+        new_path = os.path.join('/mnt/data', 'product_data.json')
+        
+        if os.path.exists(old_path):
+            # Read data from old location
+            with open(old_path, 'r') as f:
+                data = json.load(f)
+            
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(new_path), exist_ok=True)
+            
+            # Write to new location
+            with open(new_path, 'w') as f:
+                json.dump(data, f, indent=4)
+            
+            return jsonify({"success": True, "message": f"Migrated {len(data)} products to new location"})
+        else:
+            return jsonify({"error": "Old data file not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', debug=False, port=port)
