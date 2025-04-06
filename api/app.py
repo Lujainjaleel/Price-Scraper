@@ -29,9 +29,9 @@ app = Flask(__name__,
             static_folder=os.path.join(PROJECT_DIR, 'static'))
 
 # Configuration using relative paths (Render‐friendly)
-UPLOAD_FOLDER = os.path.join(PROJECT_DIR, 'uploads')
-PROCESSED_FOLDER = os.path.join(PROJECT_DIR, 'processed')
-DATA_FOLDER = os.path.join(PROJECT_DIR, 'data')
+UPLOAD_FOLDER = os.path.join('/mnt/data', 'uploads')
+PROCESSED_FOLDER = os.path.join('/mnt/data', 'processed')
+DATA_FOLDER = '/mnt/data'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
@@ -48,7 +48,7 @@ PROCESSED_FILENAME = "processed_Price_Matching.xlsx"
 PRODUCTS_JSON_PATH = os.path.join(DATA_FOLDER, "products.json")
 
 # Define primary storage path for product data using relative paths
-PRIMARY_STORAGE_PATH = os.path.join(PROJECT_DIR, 'api', 'product_data.json')
+PRIMARY_STORAGE_PATH = os.path.join('/mnt/data', 'product_data.json')
 
 # Replace the DROPBOX_ACCESS_TOKEN constant with these constants
 DROPBOX_APP_KEY = "bcvvobmq9urp9b3"  # Replace with your Dropbox app key
