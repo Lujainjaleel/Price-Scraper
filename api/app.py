@@ -185,7 +185,8 @@ def scrape_price():
         print(f"Calling scraper for {url}")
         result = matched_scraper(url, headers=headers)
         print(f"Scraper returned: {result}")
-        current_time = datetime.now().isoformat()
+        # Use UTC+1 (BST) for the timestamp
+        current_time = datetime.now(timezone(timedelta(hours=1))).isoformat()
         if result is None:
             return jsonify({
                 "url": url,
@@ -207,6 +208,7 @@ def scrape_price():
             "stock": stock,
             "timestamp": current_time
         }
+        print(f"Returning timestamp: {current_time}")  # Debug log
         return jsonify(response_data)
     except Exception as e:
         return jsonify({"error": f"Scraping failed: {str(e)}"}), 500
