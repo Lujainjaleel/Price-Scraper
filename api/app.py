@@ -706,6 +706,76 @@ def migrate_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/debug-paths', methods=['GET'])
+def debug_paths():
+    """Debug endpoint to check file paths and existence"""
+    try:
+        # Check old path
+        old_path = os.path.join(PROJECT_DIR, 'api', 'product_data.json')
+        old_exists = os.path.exists(old_path)
+        
+        # Check new path
+        new_path = os.path.join('/mnt/data', 'product_data.json')
+        new_exists = os.path.exists(new_path)
+        
+        # Check directory structure
+        project_dir = PROJECT_DIR
+        api_dir_exists = os.path.exists(os.path.join(PROJECT_DIR, 'api'))
+        mnt_data_exists = os.path.exists('/mnt/data')
+        
+        # List files in relevant directories
+        api_files = []
+        if os.path.exists(os.path.join(PROJECT_DIR, 'api')):
+            api_files = os.listdir(os.path.join(PROJECT_DIR, 'api'))
+        
+        mnt_data_files = []
+        if os.path.exists('/mnt/data'):
+            mnt_data_files = os.listdir('/mnt/data')
+        
+        return jsonify({
+            "project_dir": project_dir,
+            "old_path": old_path,
+            "old_exists": old_exists,
+            "new_path": new_path,
+            "new_exists": new_exists,
+            "api_dir_exists": api_dir_exists,
+            "mnt_data_exists": mnt_data_exists,
+            "api_files": api_files,
+            "mnt_data_files": mnt_data_files
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/force-migrate', methods=['GET'])
+def force_migrate():
+    """Force migration by hardcoding the data"""
+    try:
+        # Check if we can write to the new location
+        new_path = os.path.join('/mnt/data', 'product_data.json')
+        
+        # Try to create the directory if it doesn't exist
+        os.makedirs(os.path.dirname(new_path), exist_ok=True)
+        
+        # Create an empty products array if nothing else works
+        empty_data = []
+        
+        # First try to read from the old location
+        old_path = os.path.join(PROJECT_DIR, 'api', 'product_data.json')
+        if os.path.exists(old_path):
+            with open(old_path, 'r') as f:
+                empty_data = json.load(f)
+        
+        # Write to the new location
+        with open(new_path, 'w') as f:
+            json.dump(empty_data, f, indent=4)
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Forced migration with {len(empty_data)} products"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', debug=False, port=port)
