@@ -12,32 +12,47 @@ def scrape_thomann_price(url, headers=None):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         
-        # Method 1: Look for price in span with specific class using regex
-        price_pattern = re.compile(r'<span class="fx-typography-price-primary\s+fx-price-group__primary price__primary">\s*£(\d+(?:\.\d+)?)')
+        # Method 1: Look for price in the correct div with align-center and span with specific class
+        price_pattern = re.compile(r'<div class="fx-price-group price-group fx-price-group--wrap-yes fx-price-group--align-center">\s*<span class="fx-typography-price-primary\s+fx-price-group__primary price-group__primary price__primary">\s*£(\d+(?:\.\d+)?)')
         price_match = price_pattern.search(response.text)
         
         if price_match:
             return price_match.group(1)  # Return the captured price
         
-        # Method 2: Try a more generic price pattern
-        generic_price_pattern = re.compile(r'price__primary">\s*£(\d+(?:\.\d+)?)')
-        generic_price_match = generic_price_pattern.search(response.text)
+        # Method 2: Try a more specific pattern focusing on the align-center div
+        specific_pattern = re.compile(r'align-center">\s*<span class="fx-typography-price-primary[^>]*>\s*£(\d+(?:\.\d+)?)')
+        specific_match = specific_pattern.search(response.text)
         
-        if generic_price_match:
-            return generic_price_match.group(1)
+        if specific_match:
+            return specific_match.group(1)
         
-        # Method 3: Use BeautifulSoup to find the price span directly
+        # Method 3: Use BeautifulSoup to find the price more precisely
         soup = BeautifulSoup(response.text, "html.parser")
-        price_span = soup.find("span", class_="fx-typography-price-primary")
         
-        if price_span:
-            # Extract the price from the text content
-            price_text = price_span.get_text().strip()
-            price_match = re.search(r'£(\d+(?:\.\d+)?)', price_text)
-            if price_match:
-                return price_match.group(1)
+        # Look for the div with align-center first, then find the price span within it
+        price_div = soup.find("div", class_="fx-price-group--align-center")
+        if price_div:
+            price_span = price_div.find("span", class_="fx-typography-price-primary")
+            if price_span:
+                # Extract the price from the text content
+                price_text = price_span.get_text().strip()
+                price_match = re.search(r'£(\d+(?:\.\d+)?)', price_text)
+                if price_match:
+                    return price_match.group(1)
         
-        # Method 4: Try to find scripts that might contain product data
+        # Method 4: Try the details__price container
+        details_price = soup.find("div", class_="details__price")
+        if details_price:
+            price_div = details_price.find("div", class_="fx-price-group--align-center")
+            if price_div:
+                price_span = price_div.find("span", class_="fx-typography-price-primary")
+                if price_span:
+                    price_text = price_span.get_text().strip()
+                    price_match = re.search(r'£(\d+(?:\.\d+)?)', price_text)
+                    if price_match:
+                        return price_match.group(1)
+        
+        # Method 5: Try to find scripts that might contain product data
         scripts = soup.find_all("script")
         for script in scripts:
             if script.string:
@@ -46,7 +61,7 @@ def scrape_thomann_price(url, headers=None):
                 if price_match:
                     return price_match.group(1)
         
-        # Method 5: Look for structured data
+        # Method 6: Look for structured data
         jsonld_scripts = soup.find_all("script", type="application/ld+json")
         for script in jsonld_scripts:
             try:
