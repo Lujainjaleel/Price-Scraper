@@ -126,6 +126,10 @@ DOMAIN_SCRAPERS = {
     "gear4music.com": {
         "file": os.path.join(SCRAPER_DIR, "app_Gear4Music.py"),
         "function": "scrape_gear4music_price"
+    },
+    "spearsmusic.co.uk": {
+        "file": os.path.join(SCRAPER_DIR, "app_SpearsMusic.py"),
+        "function": "scrape_spearsmusic_price"
     }
 }
 
