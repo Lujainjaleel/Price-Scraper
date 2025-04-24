@@ -679,6 +679,34 @@ def update_price_for_url(product_index, url_index):
         print(f"Error updating price: {str(e)}")
         return False
 
+@app.route('/api/products/validate-code', methods=['POST'])
+def validate_product_code():
+    try:
+        data = request.json
+        product_code = data.get('productCode')
+        
+        if not product_code:
+            return jsonify({"valid": True})  # Empty codes are allowed
+        
+        # Get the storage path and check if the file exists
+        storage_path = get_storage_path()
+        if not os.path.exists(storage_path):
+            return jsonify({"valid": True})  # No products file exists yet
+        
+        # Read the products from the file
+        with open(storage_path, 'r') as f:
+            products = json.load(f)
+        
+        # Check if the product code already exists
+        for product in products:
+            if product.get('productCode') == product_code:
+                return jsonify({"valid": False, "message": "Product code already exists"})
+        
+        # If we get here, the code is valid
+        return jsonify({"valid": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', debug=False, port=port)

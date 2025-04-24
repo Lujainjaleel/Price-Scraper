@@ -318,6 +318,37 @@
         return;
       }
       
+      // Only validate if a product code is provided
+      if (productCode && productCode !== 'N/A') {
+        // Check with the server if the product code already exists
+        fetch('/api/products/validate-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productCode })
+        })
+        .then(response => response.json())
+        .then(result => {
+          if (result.error) {
+            alert(`Error: ${result.error}`);
+          } else if (!result.valid) {
+            alert(`Error: ${result.message}`);
+          } else {
+            // Product code is valid, proceed with adding the product
+            addValidatedProduct(productName, productCode);
+          }
+        })
+        .catch(err => {
+          console.error("Error validating product code:", err);
+          // If we can't check, we'll assume it's okay to proceed
+          addValidatedProduct(productName, productCode);
+        });
+      } else {
+        // No product code to validate, proceed with adding the product
+        addValidatedProduct(productName, productCode);
+      }
+    }
+
+    function addValidatedProduct(productName, productCode) {
       productCount++;
       const targetPage = Math.ceil(productCount / productsPerPage);
       if (targetPage > document.querySelectorAll('.page').length) {
@@ -826,6 +857,40 @@
       const newName = productCard.querySelector('.edit-product-name').value.trim() || 'N/A';
       const newCode = productCard.querySelector('.edit-product-code').value.trim() || 'N/A';
       
+      // Get current product code for comparison
+      const currentCodeText = productInfo.querySelector('p:nth-child(2)').textContent;
+      const currentCode = currentCodeText.split(':')[1].trim();
+      
+      // Only validate if code has changed and is not empty
+      if (newCode !== currentCode && newCode !== 'N/A') {
+        fetch('/api/products/validate-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productCode: newCode })
+        })
+        .then(response => response.json())
+        .then(result => {
+          if (result.error) {
+            alert(`Error: ${result.error}`);
+          } else if (!result.valid) {
+            alert(`Error: ${result.message}`);
+          } else {
+            // Product code is valid, proceed with saving
+            updateProductInfo(productCard, productInfo, editForm, newName, newCode);
+          }
+        })
+        .catch(err => {
+          console.error("Error validating product code:", err);
+          // If we can't check, we'll assume it's okay to proceed
+          updateProductInfo(productCard, productInfo, editForm, newName, newCode);
+        });
+      } else {
+        // No validation needed, proceed with saving
+        updateProductInfo(productCard, productInfo, editForm, newName, newCode);
+      }
+    }
+    
+    function updateProductInfo(productCard, productInfo, editForm, newName, newCode) {
       // Update displayed info
       productInfo.querySelector('p:nth-child(1)').innerHTML = `<strong>Product Name:</strong> ${newName}`;
       productInfo.querySelector('p:nth-child(2)').innerHTML = `<strong>Product Code:</strong> ${newCode}`;
