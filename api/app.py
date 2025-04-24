@@ -130,6 +130,14 @@ DOMAIN_SCRAPERS = {
     "spearsmusic.co.uk": {
         "file": os.path.join(SCRAPER_DIR, "app_spearsmusic.py"),
         "function": "scrape_spearsmusic_price"
+    },
+    "scan.co.uk": {
+        "file": os.path.join(SCRAPER_DIR, "app_scan.py"),
+        "function": "scrape_scan_price"
+    },
+    "thomann.co.uk": {
+        "file": os.path.join(SCRAPER_DIR, "app_thomann.py"),
+        "function": "scrape_thomann_price"
     }
 }
 
