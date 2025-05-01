@@ -283,17 +283,50 @@ def trigger_manual_update():
         start_time = datetime.now(timezone(timedelta(hours=1)))
         print(f"[MANUAL UPDATE] Process started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')} UK time")
         
-        # Run the price update
-        update_all_prices()
+        storage_path = get_storage_path()
+        if not os.path.exists(storage_path):
+            raise Exception("No product data found")
+            
+        with open(storage_path, 'r') as f:
+            products = json.load(f)
+        
+        # Process products in batches of 5
+        batch_size = 5
+        updated_count = 0
+        error_count = 0
+        
+        for i in range(0, len(products), batch_size):
+            batch = products[i:i + batch_size]
+            for product in batch:
+                try:
+                    if update_prices_for_product(product):
+                        updated_count += 1
+                except Exception as e:
+                    error_count += 1
+                    print(f"[MANUAL UPDATE] Error updating product {product.get('productName')}: {str(e)}")
+            
+            # Save after each batch
+            with open(storage_path, 'w') as f:
+                json.dump(products, f, indent=2)
+        
+        # Try to export to Dropbox after all updates
+        try:
+            export_to_dropbox()
+            dropbox_status = "Dropbox export completed successfully"
+        except Exception as e:
+            dropbox_status = f"Dropbox export failed: {str(e)}"
         
         end_time = datetime.now(timezone(timedelta(hours=1)))
         print(f"[MANUAL UPDATE] Process completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UK time")
         
         return jsonify({
             "success": True,
-            "message": "Price update and export completed successfully",
+            "message": "Price update and export completed",
             "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat()
+            "end_time": end_time.isoformat(),
+            "updated_count": updated_count,
+            "error_count": error_count,
+            "dropbox_status": dropbox_status
         })
     except Exception as e:
         print(f"[MANUAL UPDATE] Error during manual update: {str(e)}")

@@ -1448,7 +1448,7 @@
         // Disable button and show loading state
         button.disabled = true;
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running Update...';
-        statusDiv.innerHTML = '<div class="alert alert-info">Starting manual price update...</div>';
+        statusDiv.innerHTML = '<div class="alert alert-info">Starting manual price update...<br>This may take a few minutes.</div>';
         
         try {
             const response = await fetch('/api/trigger-update', {
@@ -1463,11 +1463,17 @@
             if (data.success) {
                 statusDiv.innerHTML = `
                     <div class="alert alert-success">
-                        <strong>Update Successful!</strong><br>
+                        <strong>Update Completed!</strong><br>
                         Started: ${new Date(data.start_time).toLocaleString()}<br>
-                        Completed: ${new Date(data.end_time).toLocaleString()}
+                        Completed: ${new Date(data.end_time).toLocaleString()}<br>
+                        Products Updated: ${data.updated_count}<br>
+                        Errors: ${data.error_count}<br>
+                        Dropbox Status: ${data.dropbox_status}
                     </div>
                 `;
+                
+                // Refresh the product list to show new prices
+                loadSavedUrls();
             } else {
                 statusDiv.innerHTML = `
                     <div class="alert alert-danger">
@@ -1478,7 +1484,8 @@
         } catch (error) {
             statusDiv.innerHTML = `
                 <div class="alert alert-danger">
-                    <strong>Error:</strong> ${error.message}
+                    <strong>Error:</strong> ${error.message}<br>
+                    The update may have partially completed. Please check the product list for any updates.
                 </div>
             `;
         } finally {
