@@ -282,6 +282,21 @@
     <button id="simpleNextBtn" class="button-secondary">Next</button>
   </div>
 
+  <div class="container mt-4">
+    <h1>Price Scraper</h1>
+    
+    <!-- Add Manual Update Button -->
+    <div class="row mb-4">
+        <div class="col">
+            <button id="triggerUpdateBtn" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Run Manual Price Update
+            </button>
+            <div id="updateStatus" class="mt-2"></div>
+        </div>
+    </div>
+    
+    <!-- Existing content -->
+
   <script>
     // Add this global flag at the top of your script
     let isEditingUrl = false;
@@ -1424,6 +1439,54 @@
           exportButton.disabled = false;
         });
     }
+
+    // Add manual update functionality
+    document.getElementById('triggerUpdateBtn').addEventListener('click', async function() {
+        const button = this;
+        const statusDiv = document.getElementById('updateStatus');
+        
+        // Disable button and show loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running Update...';
+        statusDiv.innerHTML = '<div class="alert alert-info">Starting manual price update...</div>';
+        
+        try {
+            const response = await fetch('/api/trigger-update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Update Successful!</strong><br>
+                        Started: ${new Date(data.start_time).toLocaleString()}<br>
+                        Completed: ${new Date(data.end_time).toLocaleString()}
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Update Failed:</strong> ${data.error}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> ${error.message}
+                </div>
+            `;
+        } finally {
+            // Re-enable button
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sync-alt"></i> Run Manual Price Update';
+        }
+    });
   </script>
 </body>
 </html>

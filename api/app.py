@@ -275,6 +275,33 @@ def auto_save_products():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/trigger-update', methods=['POST'])
+def trigger_manual_update():
+    """Manually trigger the price update and Dropbox export process"""
+    try:
+        print("[MANUAL UPDATE] Starting manual price update process")
+        start_time = datetime.now(timezone(timedelta(hours=1)))
+        print(f"[MANUAL UPDATE] Process started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')} UK time")
+        
+        # Run the price update
+        update_all_prices()
+        
+        end_time = datetime.now(timezone(timedelta(hours=1)))
+        print(f"[MANUAL UPDATE] Process completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UK time")
+        
+        return jsonify({
+            "success": True,
+            "message": "Price update and export completed successfully",
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat()
+        })
+    except Exception as e:
+        print(f"[MANUAL UPDATE] Error during manual update: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 # -----------------------------
 # Periodic Price Update Section
 # -----------------------------
