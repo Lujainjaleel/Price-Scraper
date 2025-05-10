@@ -12,26 +12,25 @@ def scrape_thomann_price(url, headers=None):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         
-        # First try: Direct regex pattern for the price
-        price_pattern = r'<span class="fx-typography-price-primary[^>]*>\s*£\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)'
+        # Unified regex pattern for price (captures £1,444 or £1,444.99)
+        price_pattern = r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)'
         price_match = re.search(price_pattern, response.text)
         if price_match:
+            # Remove commas and return the full number (e.g., "1444" or "1444.99")
             return price_match.group(1).replace(',', '')
             
         # Second try: Look for price with price__symbol
-        price_pattern2 = r'<span class="price__symbol">£</span>\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)'
+        price_pattern2 = r'<span class="price__symbol">£</span>\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)'
         price_match = re.search(price_pattern2, response.text)
         if price_match:
             return price_match.group(1).replace(',', '')
             
         # Third try: Use BeautifulSoup to find any price
         soup = BeautifulSoup(response.text, "html.parser")
-        
-        # Look for any span containing a price
         for span in soup.find_all("span"):
             text = span.get_text().strip()
             if "£" in text:
-                price_match = re.search(r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)', text)
+                price_match = re.search(r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)', text)
                 if price_match:
                     return price_match.group(1).replace(',', '')
         
@@ -39,7 +38,7 @@ def scrape_thomann_price(url, headers=None):
         scripts = soup.find_all("script")
         for script in scripts:
             if script.string:
-                price_match = re.search(r'"price":\s*"?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)"?', script.string)
+                price_match = re.search(r'"price":\s*"?(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)"?', script.string)
                 if price_match:
                     return price_match.group(1).replace(',', '')
         
