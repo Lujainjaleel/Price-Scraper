@@ -11,47 +11,54 @@ def scrape_thomann_price(url, headers=None):
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        
-        # Method 1: Look for price in the product__meta-info div
         soup = BeautifulSoup(response.text, "html.parser")
-        meta_info = soup.find("div", class_="product__meta-info")
-        if meta_info:
-            price_div = meta_info.find("div", class_="fx-price-group--align-left")
-            if price_div:
-                price_span = price_div.find("span", class_="fx-typography-price-primary")
+        
+        # List of possible price locations to check
+        price_locations = [
+            # Location 1: product__meta-info
+            lambda: soup.find("div", class_="product__meta-info"),
+            # Location 2: price fx-text
+            lambda: soup.find("div", class_="price fx-text"),
+            # Location 3: details__price
+            lambda: soup.find("div", class_="details__price"),
+            # Location 4: price with strike-highlight
+            lambda: soup.find("div", class_="fx-price-group--strike-highlight")
+        ]
+        
+        # Try each location
+        for get_location in price_locations:
+            location = get_location()
+            if location:
+                # Try to find price in span with fx-typography-price-primary class
+                price_span = location.find("span", class_="fx-typography-price-primary")
                 if price_span:
                     price_text = price_span.get_text().strip()
                     price_match = re.search(r'£(\d{1,3}(?:,\d{3})*(?:\.\d+)?)', price_text)
                     if price_match:
                         return price_match.group(1).replace(',', '')
-        
-        # Method 2: Try the original patterns as fallback
-        price_pattern = re.compile(r'<div class="fx-price-group price-group fx-price-group--wrap-yes fx-price-group--align-center">\s*<span class="fx-typography-price-primary\s+fx-price-group__primary price-group__primary price__primary">\s*£(\d{1,3}(?:,\d{3})*(?:\.\d+)?)')
-        price_match = price_pattern.search(response.text)
-        
-        if price_match:
-            return price_match.group(1).replace(',', '')
-        
-        # Method 3: Try a more specific pattern focusing on the align-center div
-        specific_pattern = re.compile(r'align-center">\s*<span class="fx-typography-price-primary[^>]*>\s*£(\d{1,3}(?:,\d{3})*(?:\.\d+)?)')
-        specific_match = specific_pattern.search(response.text)
-        
-        if specific_match:
-            return specific_match.group(1).replace(',', '')
-        
-        # Method 4: Try the details__price container
-        details_price = soup.find("div", class_="details__price")
-        if details_price:
-            price_div = details_price.find("div", class_="fx-price-group--align-center")
-            if price_div:
-                price_span = price_div.find("span", class_="fx-typography-price-primary")
-                if price_span:
-                    price_text = price_span.get_text().strip()
-                    price_match = re.search(r'£(\d{1,3}(?:,\d{3})*(?:\.\d+)?)', price_text)
+                
+                # Try to find price in span with price__symbol
+                price_symbol = location.find("span", class_="price__symbol")
+                if price_symbol:
+                    # Get the text after the price symbol
+                    price_text = price_symbol.next_sibling.strip()
+                    price_match = re.search(r'(\d{1,3}(?:,\d{3})*(?:\.\d+)?)', price_text)
                     if price_match:
                         return price_match.group(1).replace(',', '')
         
-        # Method 5: Try to find scripts that might contain product data
+        # If no price found in HTML structure, try regex patterns
+        price_patterns = [
+            r'<span class="fx-typography-price-primary[^>]*>\s*£(\d{1,3}(?:,\d{3})*(?:\.\d+)?)',
+            r'<span class="price__symbol">£</span>(\d{1,3}(?:,\d{3})*(?:\.\d+)?)',
+            r'class="fx-price-group[^"]*">\s*<span[^>]*>\s*£(\d{1,3}(?:,\d{3})*(?:\.\d+)?)'
+        ]
+        
+        for pattern in price_patterns:
+            price_match = re.search(pattern, response.text)
+            if price_match:
+                return price_match.group(1).replace(',', '')
+        
+        # Try to find in scripts
         scripts = soup.find_all("script")
         for script in scripts:
             if script.string:
@@ -60,7 +67,7 @@ def scrape_thomann_price(url, headers=None):
                 if price_match:
                     return price_match.group(1).replace(',', '')
         
-        # Method 6: Look for structured data
+        # Look for structured data
         jsonld_scripts = soup.find_all("script", type="application/ld+json")
         for script in jsonld_scripts:
             try:
