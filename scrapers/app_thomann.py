@@ -15,44 +15,84 @@ def scrape_thomann_price(url, headers=None):
         # Parse HTML with BeautifulSoup
         soup = BeautifulSoup(response.text, "html.parser")
         
-        # First try: Find price in span with fx-typography-price-primary or price__primary
-        price_spans = soup.find_all("span", class_=["fx-typography-price-primary", "price__primary"])
-        for span in price_spans:
-            text = span.get_text().strip()  # Clean whitespace and line breaks
-            price_match = re.search(r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)', text)
-            if price_match:
-                return price_match.group(1).replace(',', '')
-        
-        # Second try: Handle separated price__symbol (e.g., <span class="price__symbol">£</span>1,444)
-        price_divs = soup.find_all("div", class_="price")
-        for div in price_divs:
-            text = div.get_text().strip()  # Get combined text of div
-            price_match = re.search(r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)', text)
-            if price_match:
-                return price_match.group(1).replace(',', '')
-        
-        # Third try: Fallback regex on entire page
-        price_pattern = r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)'
-        price_match = re.search(price_pattern, response.text)
-        if price_match:
-            return price_match.group(1).replace(',', '')
-        
-        # Fourth try: Look in scripts for JSON-LD
+        # First try: Look in scripts for JSON-LD, prioritizing product and offer schemas
         jsonld_scripts = soup.find_all("script", type="application/ld+json")
         for script in jsonld_scripts:
             try:
                 data = json.loads(script.string)
-                if isinstance(data, dict):
-                    if "offers" in data:
-                        offers = data["offers"]
-                        if isinstance(offers, dict) and "price" in offers:
-                            price = str(offers["price"])
+                # Handle single JSON object or a list of JSON objects
+                if not isinstance(data, list):
+                    data = [data]
+
+                for item in data:
+                    # Prioritize Product schema
+                    if item.get("@type") == "Product":
+                        if "offers" in item:
+                            offers = item["offers"]
+                            if isinstance(offers, dict) and "price" in offers:
+                                price = str(offers["price"])
+                                return price.replace(',', '')
+                        elif "price" in item: # Sometimes price is directly in Product schema
+                            price = str(item["price"])
                             return price.replace(',', '')
-                    if "price" in data:
-                        price = str(data["price"])
+                    # Fallback to Offer schema if Product not found or doesn't have price
+                    if item.get("@type") == "Offer" and "price" in item:
+                        price = str(item["price"])
                         return price.replace(',', '')
-            except:
-                pass
+            except json.JSONDecodeError:
+                continue # Skip invalid JSON
+            except Exception as e:
+                print(f"Error parsing JSON-LD: {e}")
+                continue
+        
+        # --- Second try: Find price specifically within the main product price block ---
+        product_price_block = soup.find("div", id="product-price-block")
+        if product_price_block:
+            price_span = product_price_block.find("span", class_=["fx-typography-price-primary", "price__primary"])
+            if price_span:
+                text = price_span.get_text().strip()
+                price_match = re.search(r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)', text)
+                if price_match:
+                    return price_match.group(1).replace(',', '')
+
+        # --- Attempt to remove accessories section elements before further general HTML parsing ---
+        # This is to prevent scraping prices from the "Accessories & matching items" section
+        accessories_headline = soup.find("h2", class_="fx-carousel__headline", 
+                                          text=re.compile(r"Accessories & matching items", re.IGNORECASE))
+        
+        if accessories_headline:
+            # Decompose the headline itself
+            accessories_headline.decompose()
+            print("Decomposed 'Accessories & matching items' headline.")
+            
+            # Decompose the immediate sibling div with class 'control' which contains the carousel items
+            control_div = accessories_headline.find_next_sibling("div", class_="control")
+            if control_div:
+                control_div.decompose()
+                print("Decomposed 'control' div sibling of accessories headline.")
+
+
+        # --- Third try: Find price in span with fx-typography-price-primary or price__primary (after decomposition) ---
+        price_spans = soup.find_all("span", class_=["fx-typography-price-primary", "price__primary"])
+        for span in price_spans:
+            text = span.get_text().strip()
+            price_match = re.search(r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)', text)
+            if price_match:
+                return price_match.group(1).replace(',', '')
+        
+        # --- Fourth try: Handle separated price__symbol (after decomposition) ---
+        price_divs = soup.find_all("div", class_="price")
+        for div in price_divs:
+            text = div.get_text().strip()
+            price_match = re.search(r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)', text)
+            if price_match:
+                return price_match.group(1).replace(',', '')
+        
+        # --- Fifth try: Fallback regex on *original* page text (least specific, use with caution) ---
+        price_pattern = r'£\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)'
+        price_match = re.search(price_pattern, response.text) # Use original response.text
+        if price_match:
+            return price_match.group(1).replace(',', '')
         
         return None
         
