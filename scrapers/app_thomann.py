@@ -49,12 +49,24 @@ def scrape_thomann_price(url, headers=None):
         product_price_block = soup.find("div", id="product-price-box")
         if product_price_block:
             # Try to get price from meta itemprop="price" first
-            meta_price = product_price_block.find("meta", itemprop="price")
-            if meta_price and "content" in meta_price.attrs:
-                price = meta_price["content"]
-                return str(price).replace(',', '')
+            meta_price_tag = product_price_block.find("meta", itemprop="price")
+            # Try to get URL from meta itemprop="url"
+            meta_url_tag = product_price_block.find("meta", itemprop="url")
 
-            # If meta price not found, try span with fx-typography-price-primary or price__primary
+            if meta_price_tag and "content" in meta_price_tag.attrs and \
+               meta_url_tag and "content" in meta_url_tag.attrs:
+                
+                price = meta_price_tag["content"]
+                scraped_url = meta_url_tag["content"]
+
+                # Validate if the scraped URL matches the input URL
+                if scraped_url == url:
+                    print(f"Scraped URL {scraped_url} matches input URL {url}. Returning price.")
+                    return str(price).replace(',', '')
+                else:
+                    print(f"URL mismatch in product-price-box meta tags. Scraped: {scraped_url}, Expected: {url}. Skipping this price source.")
+
+            # If meta tags didn't provide a valid, matching price, try span with fx-typography-price-primary or price__primary
             price_span = product_price_block.find("span", class_=["fx-typography-price-primary", "price__primary"])
             if price_span:
                 text = price_span.get_text().strip()
