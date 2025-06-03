@@ -13,6 +13,10 @@ def scrape_thomann_price(url, headers=None):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         
+        # Add debug prints for response status and content
+        print(f"[Thomann Scraper Debug] HTTP Status Code: {response.status_code}")
+        print(f"[Thomann Scraper Debug] First 500 chars of response text: {response.text[:500]}")
+
         # Parse HTML with BeautifulSoup
         soup = BeautifulSoup(response.text, "html.parser")
         
@@ -22,7 +26,11 @@ def scrape_thomann_price(url, headers=None):
         normalized_input_url = normalized_input_url.rstrip('/')
 
         # --- ONLY try: Find price specifically within the main product price box with URL validation ---
-        product_price_block = soup.find("div", id="product-price-box")
+        product_price_block = soup.find("div", class_="product-price-box")
+        
+        if not product_price_block:
+            print("[Thomann Scraper] product-price-box div (class) not found.")
+
         if product_price_block:
             # Try to get price from meta itemprop="price" first
             meta_price_tag = product_price_block.find("meta", itemprop="price")
@@ -46,6 +54,8 @@ def scrape_thomann_price(url, headers=None):
                     return str(price).replace(',', '')
                 else:
                     print(f"[Thomann Scraper] URL mismatch in product-price-box meta tags. Scraped: {scraped_url} (normalized: {normalized_scraped_url}), Expected: {url} (normalized: {normalized_input_url}). Price skipped.")
+            else:
+                print("[Thomann Scraper] meta itemprop=\"price\" or meta itemprop=\"url\" not found or missing content attribute within product-price-box.")
         
         print("[Thomann Scraper] No valid price found in product-price-box with URL validation. Returning None.")
         return None
