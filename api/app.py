@@ -20,6 +20,7 @@ import dropbox
 from dropbox.exceptions import AuthError, ApiError
 from dropbox.files import WriteMode
 import requests
+import pytz
 
 # Get the absolute path to the project directory
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -56,6 +57,9 @@ DROPBOX_APP_SECRET = "bq3ggjy0v47iymw"  # Replace with your Dropbox app secret
 DROPBOX_REFRESH_TOKEN = "CrdI_N2hNvYAAAAAAAAAASoQHawJmRyadHGL1NB-oTNmLS9QvBumYrgV348_piiw"  # Replace with your refresh token
 DROPBOX_ACCESS_TOKEN = "sl.u.AFpsH7k3VMIbzyBPuJB0BxaUElIQbgBc-ZpRy_x9Q91cJsRLQmUJUBVWa5KQ5hdUQG1e6hi8mmqLPMTzXdKwIFft3cH_kIVFZM287i3g2_in1OdBBHS_rSZwDtaec_tarEdqUhy5T5tSfchG5N-lHtEkb5ql9nr1AGOXJqv00cQucbjDzsD6C2PbnRr-CUXRiZM5JCrnaI9CnyOtFcRuPOueA6rAApRolcxwJ9FcLRWNLT8kBpV4KWpau24UXVuVVAga6Cgm4er4RTTwHAraL6BxPfToNqktA9yuf7JzemrER0mkbHbWmJvVVm4N7CMDvDl-uZjizA7ci_M4ZZ74DqVV-4nOMfIOQAY7RRY03ECyCb7hX88fzAXjyxBH3iPcXonVzStujOqTqAkCCdErnoIm7odUrN6YGqAAUyn5_u2iKijno9i4O22pZAKFZR0UIltWk-bbMTemrzp9W2BXAEXiLFWKYynkdQlf6bo-CH8kW7zeLwnv6qcQxp1STlURP92d6b58HSf6PpzqB2STHC8cG7RZ5v00hRc3eR1oZ0jUUdmXFhDG5EF0GKmDOj1wT_4v8hR93qZsPFa4SJI9e0tOA_nWB0ZE7hlaWxBfpG0W7PpekhBmk7a-fuIBYlN_v-qbxiExhvfP3PeT3r3yKJidZCqkVRQk3G6hbuweUXpzeG2iInx9dVcRmUdDpYSky2xZVFHOdShyTA36o0yPWTFBfMyqJ9d0KKOXgkZPl4XMlk-C6H94vl2LhD_0oJvdngB7_fyI4WAFZaryu2c7-LZYf1pXN3mcVxt2nyOXUUHkB1ePD8iM5Jl0AK_lTXw3rs38Xle6kt5MWthiTUyhNTTRBOOERNTH2eanYmx3PZgT1Mynk6YnzYI_hUl3NJmgCd91Il34QrG_-pjNzE6OAM3E-NOaH1XmqXT58Qp7MOmx6jFFYRBPhGA-tez31CfMY9WrMHzh0z1QFztvvUSmELg-rjwt9HhCN-onHq1-6II_2QPYLEIvJrOiwZ2Si2sAXjChQmdVCjZTDVfR5G-4lhHsYGdT0qAOZH1Yv2W3ho7hsP_Wd836rgCWPv4x9PghZG5k4IpgO8iUsACxOny284FNrgPol9Aw1rT_l9VOAYY01dIcPA448Daicwq6FEAVvWFzGP_KbrMPTpdKEi6BhpgHcPLxnIaTbxqA2HkTe28PAJ3JH2sXAEglahRieMkC9YvchBuT3WbwJwHHfMBqo8ii8Dx6Z0GvDNM76xOGTZSZJcnDle6PygncvMe0Ix9aP3Kgmd2IevZYsxPkX1ekGn5cN96lBCdZM_GMn0ZNwkd71_0KQsWt6XBpUX0ebFCV5_u352qN_Yd7RX6CqFiKcfD_YEOe7iI010lIDA4vWrF9H1T-RLNVBG84fWkFlv60L1SGP9ulLwYa5blUXHS2HD5H"  # Keep this for initial use
 DROPBOX_FOLDER = "/PriceExports"  # Keep your existing folder path
+
+# Define UK timezone
+UK_TIMEZONE = pytz.timezone('Europe/London')
 
 def get_storage_path():
     # Use primary storage if its directory is writable; otherwise, use data folder
@@ -197,8 +201,8 @@ def scrape_price():
         print(f"Calling scraper for {url}")
         result = matched_scraper(url, headers=headers)
         print(f"Scraper returned: {result}")
-        # Use UTC+1 (BST) for the timestamp
-        current_time = datetime.now(timezone(timedelta(hours=1))).isoformat()
+        # Use UK timezone for the timestamp
+        current_time = datetime.now(UK_TIMEZONE).isoformat()
         if result is None:
             return jsonify({
                 "url": url,
@@ -280,7 +284,7 @@ def trigger_manual_update():
     """Manually trigger the price update and Dropbox export process"""
     try:
         print("[MANUAL UPDATE] Starting manual price update process")
-        start_time = datetime.now(timezone(timedelta(hours=1)))
+        start_time = datetime.now(UK_TIMEZONE)
         print(f"[MANUAL UPDATE] Process started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')} UK time")
         
         storage_path = get_storage_path()
@@ -316,7 +320,7 @@ def trigger_manual_update():
         except Exception as e:
             dropbox_status = f"Dropbox export failed: {str(e)}"
         
-        end_time = datetime.now(timezone(timedelta(hours=1)))
+        end_time = datetime.now(UK_TIMEZONE)
         print(f"[MANUAL UPDATE] Process completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UK time")
         
         return jsonify({
@@ -423,7 +427,7 @@ def export_to_dropbox():
         mem_file = BytesIO(csv_bytes)
         
         # Create filename with new format
-        filename = f"prices{datetime.now().strftime('%Y-%m-%d')}.csv"
+        filename = f"prices{datetime.now(UK_TIMEZONE).strftime('%Y-%m-%d')}.csv"
         
         # Upload to Dropbox
         dropbox_path = f"{DROPBOX_FOLDER}/{filename}"
@@ -442,7 +446,7 @@ def export_to_dropbox():
 def run_periodic_price_update():
     while True:
         # Get current time in UK timezone (GMT/BST)
-        uk_time = datetime.now(timezone(timedelta(hours=1)))  # UTC+1 for BST, or use 0 for GMT
+        uk_time = datetime.now(UK_TIMEZONE)
         
         # Calculate time until next 5am
         target_hour = 5
@@ -464,7 +468,7 @@ def run_periodic_price_update():
         
         # Run the update
         update_all_prices()
-        print(f"Completed price update at {datetime.now(timezone(timedelta(hours=1))).strftime('%Y-%m-%d %H:%M:%S')} UK time")
+        print(f"Completed price update at {datetime.now(UK_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')} UK time")
 
 # Comment out these lines to disable scraping
 price_update_thread = threading.Thread(target=run_periodic_price_update, daemon=True)
@@ -529,7 +533,7 @@ def export_products():
         download_file = BytesIO(csv_bytes)
         
         # Create filename with new format
-        filename = f"prices{datetime.now().strftime('%Y-%m-%d')}.csv"
+        filename = f"prices{datetime.now(UK_TIMEZONE).strftime('%Y-%m-%d')}.csv"
         
         # Also upload to Dropbox
         try:
@@ -671,7 +675,7 @@ def update_prices_for_product(product):
             
             # Scrape the price
             print(f"Scraping price for {url}")
-            url_obj["lastUpdate"] = datetime.now().isoformat()  # Always update timestamp
+            url_obj["lastUpdate"] = datetime.now(UK_TIMEZONE).isoformat()  # Always update timestamp
             result = matched_scraper(url, headers=headers)
             
             # Extract price and stock information
@@ -696,7 +700,7 @@ def update_prices_for_product(product):
                 
         except Exception as e:
             print(f"Error updating price for {url}: {str(e)}")
-            url_obj["lastUpdate"] = datetime.now().isoformat()  # Update timestamp even on failure
+            url_obj["lastUpdate"] = datetime.now(UK_TIMEZONE).isoformat()  # Update timestamp even on failure
             updated = True
     
     return updated
@@ -718,7 +722,7 @@ def update_price_for_url(product_index, url_index):
         price = scrape_price(url)
         
         # Always update the timestamp, regardless of price change
-        url_obj["lastUpdate"] = datetime.now().isoformat()
+        url_obj["lastUpdate"] = datetime.now(UK_TIMEZONE).isoformat()
         
         if price:
             # Check if price has changed
